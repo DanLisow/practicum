@@ -9,8 +9,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { email, password, role, name, phone } = req.body;
 
-  console.log(req.body);
-
   if (!email || !password || !role || !name || !phone) {
     return res.status(400).json({ message: "Заполните обязательные поля" });
   }
