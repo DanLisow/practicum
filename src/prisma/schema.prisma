@@ -51,7 +51,7 @@ model Vacancy {
   tags        Tag[]
   jobHistories JobHistory[]
   categoryId  Int?          
-  category    Category?     @relation("VacancyCategory", fields: [categoryId], references: [id])
+  category    Category?     @relation(fields: [categoryId], references: [id])
 }
 
 // Заявки на вакансии
@@ -104,7 +104,7 @@ model Tag {
 model Category {
   id        Int       @id @default(autoincrement())
   name      String
-  vacancies Vacancy[] @relation("VacancyCategory") // Связь 1:N с Vacancy
+  vacancies Vacancy[]
 }
 
 // История работы
