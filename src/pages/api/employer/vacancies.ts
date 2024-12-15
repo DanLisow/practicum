@@ -11,7 +11,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const user = verifyToken(token);
-    console.log(user);
 
     if (user.role !== "EMPLOYER") {
       return res.status(403).json({ message: "Запрещено" });
@@ -20,6 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === "GET") {
       const vacancies = await prisma.vacancy.findMany({
         where: { employerId: user.userId },
+        include: { applications: true },
       });
 
       return res.status(200).json({ vacancies });
