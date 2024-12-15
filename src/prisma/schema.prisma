@@ -4,30 +4,120 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      Role
-  createdAt DateTime @default(now())
-  profile   Profile?
+generator client {
+  provider = "prisma-client-js"
 }
 
+// Пользователи
+model User {
+  id            Int             @id @default(autoincrement())
+  email         String          @unique
+  password      String
+  role          Role
+  createdAt     DateTime        @default(now())
+  profile       Profile?        
+  vacancies     Vacancy[]       
+  applications  Application[]   
+  company       Company?        
+  resumes       Resume[]       
+  notifications Notification[]  
+  jobHistories  JobHistory[]    
+}
+
+// Профиль пользователя
 model Profile {
+  id     Int    @id @default(autoincrement())
+  name   String
+  phone  String?
+  userId Int    @unique
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+// Вакансии
+model Vacancy {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String
+  salary      Float
+  employerId  Int
+  createdAt   DateTime      @default(now())
+  employer    User          @relation(fields: [employerId], references: [id])
+  applications Application[]
+  tags        Tag[]
+  jobHistories JobHistory[]
+  categoryId  Int?          
+  category    Category?     @relation("VacancyCategory", fields: [categoryId], references: [id])
+}
+
+// Заявки на вакансии
+model Application {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  vacancyId  Int
+  resume     String
+  status     String   @default("PENDING")
+  student    User     @relation(fields: [studentId], references: [id])
+  vacancy    Vacancy  @relation(fields: [vacancyId], references: [id])
+}
+
+// Компании
+model Company {
   id         Int    @id @default(autoincrement())
   name       String
-  phone      String?
-  userId     Int    @unique
-  user       User   @relation(fields: [userId], references: [id])
+  employerId Int    @unique
+  employer   User   @relation(fields: [employerId], references: [id])
+}
+
+// Резюме
+model Resume {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  content   String
+  createdAt DateTime @default(now())
+  student   User     @relation(fields: [studentId], references: [id])
+}
+
+// Уведомления
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// Теги вакансий
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String
+  vacancyId Int
+  vacancy   Vacancy  @relation(fields: [vacancyId], references: [id])
+}
+
+// Категории вакансий
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  vacancies Vacancy[] @relation("VacancyCategory") // Связь 1:N с Vacancy
+}
+
+// История работы
+model JobHistory {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  vacancyId   Int?
+  companyName String
+  position    String
+  startDate   DateTime
+  endDate     DateTime?
+  student     User     @relation(fields: [studentId], references: [id])
+  vacancy     Vacancy? @relation(fields: [vacancyId], references: [id])
 }
 
 enum Role {
