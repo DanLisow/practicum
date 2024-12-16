@@ -5,6 +5,7 @@ const JWT_SECRET = "secretKey";
 interface Token {
   userId: number;
   role: string;
+  email: string;
   iat: number;
   exp: number;
 }

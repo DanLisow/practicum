@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface Profile {
@@ -15,12 +15,29 @@ interface Resume {
   createdAt: string;
 }
 
+interface Application {
+  id: number;
+  vacancyTitle: string;
+  status: string;
+  createdAt: string;
+}
+
+interface Notification {
+  id: number;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export default function StudentDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [resumeName, setResumeName] = useState("");
   const [resumes, setResumes] = useState<Resume[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [selectedResume, setSelectedResume] = useState<File | null>(null);
 
   useEffect(() => {
@@ -65,8 +82,50 @@ export default function StudentDashboard() {
       }
     };
 
+    const fetchApplications = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/student/applications", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Ошибка загрузки заявок");
+        }
+
+        const data = await response.json();
+        setApplications(data.applications || []);
+      } catch (error: any) {
+        setError(error.message || "Не удалось загрузить заявки");
+      }
+    };
+
+    const fetchNotifications = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("/api/student/notifications", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Ошибка загрузки уведомлений");
+        }
+
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      } catch (error: any) {
+        setError(error.message || "Не удалось загрузить уведомления");
+      }
+    };
+
     profileFetch();
     fetchResumes();
+    fetchApplications();
+    fetchNotifications();
   }, []);
 
   const handlePhotoUpload = async () => {
@@ -104,18 +163,26 @@ export default function StudentDashboard() {
     }
   };
 
-  const handleResumeUpload = async () => {
+  const handleResumeUpload = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     if (!selectedResume) {
       alert("Выберите файл для загрузки резюме!");
       return;
     }
 
+    if (!resumeName) {
+      alert("Введите название резюме");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", selectedResume);
+    formData.append("resumeName", resumeName);
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("/api/student/resumes/upload", {
+      const response = await fetch("/api/student/resume/upload", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -146,57 +213,108 @@ export default function StudentDashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="p-4">
-        <h1 className="text-2xl font-bold">Личный кабинет студента</h1>
-        <p>Email: {email}</p>
-        <p>Имя: {profile.name}</p>
-        <p>Телефон: {profile.phone}</p>
-
-        {profile.photoUrl ? (
-          <div className="my-4">
-            <img src={profile.photoUrl} className="w-32 h-32 rounded-full object-cover" />
-            <p>Изменить фото:</p>
-            <input type="file" onChange={(e) => setPhoto(e.target.files ? e.target.files[0] : null)} />
-            <button onClick={handlePhotoUpload} className="bg-blue-500 text-white px-4 py-2 mt-2 rounded">
-              Загрузить новое фото
-            </button>
+      <div className="w-3/4 flex py-8 mx-auto space-x-4">
+        <div className="student__info w-4/6">
+          <h1 className="text-2xl mb-3 font-bold">Личный кабинет студента</h1>
+          <div className="student__info-content flex">
+            <div className="student__img w-4/6">
+              {profile.photoUrl ? (
+                <div className="my-4">
+                  <img src={profile.photoUrl} className="w-32 h-32 rounded-full object-cover" />
+                  <p>Изменить фото:</p>
+                  <input type="file" onChange={(e) => setPhoto(e.target.files ? e.target.files[0] : null)} />
+                  <button onClick={handlePhotoUpload} className="bg-blue-500 text-white px-4 py-2 mt-2 rounded">
+                    Загрузить новое фото
+                  </button>
+                </div>
+              ) : (
+                <div className="my-4">
+                  <p>Фото не добавлено</p>
+                  <input type="file" onChange={(e) => setPhoto(e.target.files ? e.target.files[0] : null)} />
+                  <button onClick={handlePhotoUpload} className="bg-blue-500 text-white px-4 py-2 mt-2 rounded">
+                    Добавить фото
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="student__name w-5/12">
+              <p>Email: {email}</p>
+              <p>Имя: {profile.name}</p>
+              <p>Телефон: {profile.phone}</p>
+            </div>
           </div>
-        ) : (
-          <div className="my-4">
-            <p>Фото не добавлено</p>
-            <input type="file" onChange={(e) => setPhoto(e.target.files ? e.target.files[0] : null)} />
-            <button onClick={handlePhotoUpload} className="bg-blue-500 text-white px-4 py-2 mt-2 rounded">
-              Добавить фото
-            </button>
-          </div>
-        )}
 
-        <div className="my-4">
-          <h2 className="text-xl font-semibold">Ваши резюме</h2>
-          {resumes.length === 0 ? (
-            <p>У вас пока нет резюме.</p>
-          ) : (
-            <ul>
-              {resumes.map((resume) => (
-                <li key={resume.id} className="border p-2 my-2">
-                  <p>Резюме: {resume.content}</p>
-                  <p>Загрузено: {new Date(resume.createdAt).toLocaleDateString()}</p>
-                </li>
-              ))}
-            </ul>
-          )}
+          <form className="my-4" onSubmit={handleResumeUpload}>
+            <h2 className="text-xl font-semibold">Добавить резюме</h2>
+            <div className="resume__block flex space-x-2 my-2">
+              <input
+                type="text"
+                placeholder="Название резюме"
+                value={resumeName}
+                onChange={(e) => setResumeName(e.target.value)}
+                className="border p-2 w-full"
+              />
+              <input
+                type="file"
+                onChange={(e) => setSelectedResume(e.target.files ? e.target.files[0] : null)}
+                className="border p-2 w-full"
+              />
+            </div>
+            <button className="bg-blue-500 text-white px-4 py-2 rounded">Загрузить резюме</button>
+          </form>
+
+          <div className="my-8">
+            <h2 className="text-xl font-semibold">Ваши резюме</h2>
+            {resumes.length === 0 ? (
+              <p>У вас пока нет резюме.</p>
+            ) : (
+              <ul>
+                {resumes.map((resume) => (
+                  <li key={resume.id} className="border p-2 my-2">
+                    <p>Резюме: {resume.resumeName}</p>
+                    <p>Загружено: {new Date(resume.createdAt).toLocaleDateString()}</p>
+                    <a href={`${resume.content}`} className="text-blue-600" target="_blank">
+                      Посмотреть резюме
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
 
-        <div className="my-4">
-          <h2 className="text-xl font-semibold">Добавить резюме</h2>
-          <input
-            type="file"
-            onChange={(e) => setSelectedResume(e.target.files ? e.target.files[0] : null)}
-            className="border p-2 w-full mb-2"
-          />
-          <button onClick={handleResumeUpload} className="bg-blue-500 text-white px-4 py-2 rounded">
-            Загрузить резюме
-          </button>
+        <div className="student__aside w-5/12">
+          <div className="my-4">
+            <h2 className="text-xl font-semibold">Ваши заявки</h2>
+            {applications.length === 0 ? (
+              <p>У вас пока нет заявок.</p>
+            ) : (
+              <ul>
+                {applications.map((application) => (
+                  <li key={application.id} className="border p-2 my-2">
+                    <p>Вакансия: {application.vacancyTitle}</p>
+                    <p>Статус: {application.status}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="my-4">
+            <h2 className="text-xl font-semibold">Ваши уведомления</h2>
+            {notifications.length === 0 ? (
+              <p>У вас пока нет уведомлений.</p>
+            ) : (
+              <ul>
+                {notifications.map((notification) => (
+                  <li key={notification.id} className="border p-2 my-2">
+                    <p>{notification.message}</p>
+                    <p>Получено: {new Date(notification.createdAt).toLocaleString()}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     </ProtectedRoute>

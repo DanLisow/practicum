@@ -47,11 +47,11 @@ model Vacancy {
   employerId  Int
   createdAt   DateTime      @default(now())
   employer    User          @relation(fields: [employerId], references: [id])
-  applications Application[]
-  tags        Tag[]
-  jobHistories JobHistory[]
-  categoryId  Int?          
-  category    Category?     @relation(fields: [categoryId], references: [id])
+  applications Application[] 
+  tags         Tag[]         
+  jobHistories JobHistory[]  
+  categoryId   Int?          
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 }
 
 // Заявки на вакансии
@@ -61,8 +61,8 @@ model Application {
   vacancyId  Int
   resume     String
   status     String   @default("PENDING")
-  student    User     @relation(fields: [studentId], references: [id])
-  vacancy    Vacancy  @relation(fields: [vacancyId], references: [id])
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  vacancy    Vacancy  @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
 }
 
 // Компании
@@ -70,16 +70,17 @@ model Company {
   id         Int    @id @default(autoincrement())
   name       String
   employerId Int    @unique
-  employer   User   @relation(fields: [employerId], references: [id])
+  employer   User   @relation(fields: [employerId], references: [id], onDelete: Cascade)
 }
 
 // Резюме
 model Resume {
   id        Int      @id @default(autoincrement())
   studentId Int
+  resumeName String  @default("")
   content   String
   createdAt DateTime @default(now())
-  student   User     @relation(fields: [studentId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
 
 // Уведомления
@@ -89,7 +90,7 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Теги вакансий
@@ -116,8 +117,8 @@ model JobHistory {
   position    String
   startDate   DateTime
   endDate     DateTime?
-  student     User     @relation(fields: [studentId], references: [id])
-  vacancy     Vacancy? @relation(fields: [vacancyId], references: [id])
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  vacancy     Vacancy? @relation(fields: [vacancyId], references: [id], onDelete: Cascade)
 }
 
 enum Role {

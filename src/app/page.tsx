@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface Vacancy {
   id: number;
@@ -87,44 +88,46 @@ export default function HomePage() {
   };
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold">Главная страница</h1>
+    <ProtectedRoute>
+      <div className="p-4 w-3/4 mx-auto">
+        <h1 className="text-2xl font-bold">Главная страница</h1>
 
-      <div className="my-4">
-        <h2 className="text-xl font-semibold">Список вакансий</h2>
-        {vacancies.length === 0 ? (
-          <p>Вакансий пока нет</p>
-        ) : (
-          <ul>
-            {vacancies.map((vacancy) => (
-              <li key={vacancy.id} className="border p-2 my-2">
-                <h3 className="font-bold">{vacancy.title}</h3>
-                <p>{vacancy.description}</p>
-                <p>Зарплата: {vacancy.salary} руб.</p>
-                <div className="my-2">
-                  <select
-                    value={selectedResume || ""}
-                    onChange={(e) => setSelectedResume(Number(e.target.value))}
-                    className="border p-2 w-full"
-                  >
-                    <option value="">Выберите резюме</option>
-                    {resumes.map((resume) => (
-                      <option key={resume.id} value={resume.id}>
-                        Резюме #{resume.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button onClick={() => handleApply(vacancy.id)} className="bg-blue-500 text-white px-4 py-2 rounded">
-                  Подать заявку
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="my-7">
+          <h2 className="text-xl font-semibold">Список вакансий</h2>
+          {vacancies.length === 0 ? (
+            <p>Вакансий пока нет</p>
+          ) : (
+            <ul>
+              {vacancies.map((vacancy) => (
+                <li key={vacancy.id} className="border p-2 my-2">
+                  <h3 className="font-bold">{vacancy.title}</h3>
+                  <p>{vacancy.description}</p>
+                  <p>Зарплата: {vacancy.salary} руб.</p>
+                  <div className="my-2">
+                    <select
+                      value={selectedResume || ""}
+                      onChange={(e) => setSelectedResume(Number(e.target.value))}
+                      className="border p-2 w-full"
+                    >
+                      <option value="">Выберите резюме</option>
+                      {resumes.map((resume) => (
+                        <option key={resume.id} value={resume.id}>
+                          {resume.resumeName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button onClick={() => handleApply(vacancy.id)} className="bg-blue-500 text-white px-4 py-2 rounded">
+                    Подать заявку
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {error && <p className="text-red-500">{error}</p>}
       </div>
-
-      {error && <p className="text-red-500">{error}</p>}
-    </div>
+    </ProtectedRoute>
   );
 }

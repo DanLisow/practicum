@@ -19,22 +19,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === "GET") {
       const vacancies = await prisma.vacancy.findMany({
         where: { employerId: user.userId },
-        include: { applications: true },
+        include: {
+          applications: {
+            include: {
+              student: {
+                select: {
+                  profile: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
       });
 
-      return res.status(200).json({ vacancies });
+      const formattedVacancies = vacancies.map((vacancy) => ({
+        id: vacancy.id,
+        title: vacancy.title,
+        description: vacancy.description,
+        salary: vacancy.salary,
+        createdAt: vacancy.createdAt,
+        applications: vacancy.applications.map((application) => ({
+          id: application.id,
+          studentId: application.studentId,
+          studentName: application.student?.profile?.name || "Имя не указано",
+          resume: application.resume,
+          status: application.status,
+          createdAt: application.createdAt,
+        })),
+      }));
+
+      return res.status(200).json({ vacancies: formattedVacancies });
     }
 
     if (req.method === "POST") {
       const { title, description, salary } = req.body;
 
-      console.log(req.body);
+      const parsedSalary = parseFloat(salary);
+      if (isNaN(parsedSalary)) {
+        return res.status(400).json({ message: "Некорректная зарплата" });
+      }
 
       const vacancy = await prisma.vacancy.create({
         data: {
           title: title,
           description: description,
-          salary: parseFloat(salary),
+          salary: parsedSalary,
           employerId: user.userId,
         },
       });
@@ -44,14 +73,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === "DELETE") {
       const vacancyId = parseInt(req.query.id as string);
+      if (!vacancyId) {
+        return res.status(400).json({ message: "ID вакансии не указан" });
+      }
+
       const vacancy = await prisma.vacancy.delete({
         where: { id: vacancyId },
       });
       res.status(200).json(vacancy);
     }
-  } catch (error) {
-    console.log(error);
-
+  } catch (error: any) {
+    console.error("Ошибка на сервере:", error);
     return res.status(500).json({ message: "Ошибка сервера" });
   }
 }

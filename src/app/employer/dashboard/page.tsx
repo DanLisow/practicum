@@ -6,7 +6,9 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 interface Application {
   id: number;
   studentId: number;
+  studentName: string;
   resume: string;
+  resumeName: string;
   status: string;
   createdAt: string;
 }
@@ -20,7 +22,7 @@ interface Vacancy {
   applications: Application[];
 }
 
-export default function employerDashboard() {
+export default function EmployerDashboard() {
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [newVacancy, setNewVacancy] = useState({
     title: "",
@@ -30,15 +32,20 @@ export default function employerDashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchVacancy = async () => {
+    const fetchVacancies = async () => {
       try {
         const token = localStorage.getItem("token");
 
         const response = await fetch("/api/employer/vacancies", {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
+
+        if (!response.ok) {
+          throw new Error("Ошибка загрузки вакансий");
+        }
 
         const data = await response.json();
         setVacancies(data.vacancies);
@@ -47,7 +54,7 @@ export default function employerDashboard() {
       }
     };
 
-    fetchVacancy();
+    fetchVacancies();
   }, []);
 
   const handleAddVacancy = async () => {
@@ -68,11 +75,7 @@ export default function employerDashboard() {
 
       const newVacancyData = await response.json();
       setVacancies((prev) => [...prev, newVacancyData]);
-      setNewVacancy({
-        title: "",
-        description: "",
-        salary: "",
-      });
+      setNewVacancy({ title: "", description: "", salary: "" });
     } catch (error: any) {
       setError(error.message || "Не удалось добавить вакансию");
     }
@@ -95,6 +98,33 @@ export default function employerDashboard() {
       setVacancies((prev) => prev.filter((vacancy) => vacancy.id !== id));
     } catch (error: any) {
       setError(error.message || "Вакансия не удалена");
+    }
+  };
+
+  const handleApplicationStatus = async (applicationId: number, status: string) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("/api/employer/applications/status", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ applicationId, status }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Ошибка обновления статуса заявки");
+      }
+
+      const updatedVacancies = vacancies.map((vacancy) => ({
+        ...vacancy,
+        applications: vacancy.applications.map((app) => (app.id === applicationId ? { ...app, status } : app)),
+      }));
+      setVacancies(updatedVacancies);
+    } catch (error: any) {
+      setError(error.message || "Ошибка изменения статуса заявки");
     }
   };
 
@@ -122,15 +152,33 @@ export default function employerDashboard() {
                     Удалить
                   </button>
 
-                  {vacancy.applications.length > 0 ? (
+                  {vacancy?.applications.length > 0 ? (
                     <ul className="mt-4 border-t pt-2">
                       <h4 className="font-semibold">Заявки:</h4>
                       {vacancy.applications.map((application) => (
                         <li key={application.id} className="border p-2 my-2">
-                          <p>Студент ID: {application.studentId}</p>
-                          <p>Резюме: {application.resume}</p>
+                          <p>Студент: {application.studentName}</p>
+                          <p>
+                            Резюме:{" "}
+                            <a href={application.resume} className="text-blue-600" target="_blank" rel="noopener noreferrer">
+                              {application.resume}
+                            </a>
+                          </p>
                           <p>Статус: {application.status}</p>
-                          <p>Подано: {new Date(application.createdAt).toLocaleString()}</p>
+                          <div className="flex gap-4 mt-2">
+                            <button
+                              onClick={() => handleApplicationStatus(application.id, "APPROVED")}
+                              className="bg-green-500 text-white px-4 py-2 rounded"
+                            >
+                              Принять
+                            </button>
+                            <button
+                              onClick={() => handleApplicationStatus(application.id, "REJECTED")}
+                              className="bg-red-500 text-white px-4 py-2 rounded"
+                            >
+                              Отклонить
+                            </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
