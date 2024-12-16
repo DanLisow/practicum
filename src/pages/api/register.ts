@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/prisma";
+import { registerSchema } from "@/lib/validation";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -9,8 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { email, password, role, name, phone } = req.body;
 
-  if (!email || !password || !role || !name || !phone) {
-    return res.status(400).json({ message: "Заполните обязательные поля" });
+  try {
+    registerSchema.parse({ email, password, role, name, phone });
+  } catch (error: any) {
+    return res.status(400).json({ message: "Некорректные данные", errors: error.errors });
   }
 
   try {

@@ -7,16 +7,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: "Метод не поддерживается" });
   }
 
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({ message: "Не авторизован" });
   }
 
   try {
-    const decoded = verifyToken(token);
-    const employerId = decoded.userId;
+    const decodedToken = verifyToken(token);
+    const employerId = decodedToken.userId;
     const { applicationId, status } = req.body;
 
     if (!applicationId || !status) {
@@ -29,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!application || application.vacancy.employerId !== employerId) {
-      return res.status(404).json({ message: "Заявка не найдена или у вас нет доступа" });
+      return res.status(404).json({ message: "Заявка не найдена" });
     }
 
     await prisma.application.update({

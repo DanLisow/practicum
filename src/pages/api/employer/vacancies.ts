@@ -38,14 +38,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         description: vacancy.description,
         salary: vacancy.salary,
         createdAt: vacancy.createdAt,
-        applications: vacancy.applications.map((application) => ({
-          id: application.id,
-          studentId: application.studentId,
-          studentName: application.student?.profile?.name || "Имя не указано",
-          resume: application.resume,
-          status: application.status,
-          createdAt: application.createdAt,
-        })),
+        applications: vacancy.applications
+          ? vacancy.applications.map((application) => ({
+              id: application.id,
+              studentId: application.studentId,
+              studentName: application.student?.profile?.name || "Имя не указано",
+              resume: application.resume,
+              status: application.status,
+              createdAt: application.createdAt,
+            }))
+          : [],
       }));
 
       return res.status(200).json({ vacancies: formattedVacancies });

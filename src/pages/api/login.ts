@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "@/lib/prisma";
+import { loginSchema } from "@/lib/validation";
 
 const JWT_SECRET = "secretKey";
 
@@ -12,8 +13,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email и пароль обязательны" });
+  try {
+    loginSchema.parse({ email, password });
+  } catch (error: any) {
+    return res.status(400).json({ message: "Некорректные данные", errors: error.errors });
   }
 
   try {
